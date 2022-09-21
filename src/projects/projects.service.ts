@@ -6,21 +6,21 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 
 @Injectable()
 export class ProjectsService {
-    constructor(private readonly projectRepository: ProjectsRepository) {}
+    constructor(private readonly projectsRepository: ProjectsRepository) {}
 
     async createProject(projectData: CreateProjectDto): Promise<Project> {
-        return this.projectRepository.save(projectData);
+        return this.projectsRepository.save(projectData);
     }
 
     async getProjectById(id: string): Promise<Project> {
-        return this.projectRepository.findOne({ _id: id });
+        return this.projectsRepository.findById(id);
     }
 
     async updateProject(id: string, projectData: UpdateProjectDto): Promise<Project> {
-        return this.projectRepository.findOneAndUpdate({ _id: id }, projectData);
+        return this.projectsRepository.findByIdAndUpdate(id, projectData);
     }
 
     async deleteProject(id: string): Promise<Project> {
-        return this.projectRepository.findOneAndDelete({ _id: id });
+        return this.projectsRepository.findByIdAndDelete(id);
     }
 }
