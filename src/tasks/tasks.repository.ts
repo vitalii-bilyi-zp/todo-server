@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
+import { DeleteResult } from 'mongodb';
 import { Task, TaskDocument } from './schemas/task.schema';
 
 @Injectable()
@@ -24,5 +25,9 @@ export class TasksRepository {
 
     async findByIdAndDelete(id: string): Promise<TaskDocument> {
         return this.taskModel.findByIdAndDelete(id);
+    }
+
+    async deleteMany(tasksFilterQuery: FilterQuery<Task>): Promise<DeleteResult> {
+        return this.taskModel.deleteMany(tasksFilterQuery);
     }
 }

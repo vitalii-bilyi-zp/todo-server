@@ -8,11 +8,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 export class TasksService {
     constructor(private readonly tasksRepository: TasksRepository) {}
 
-    async getTasks(parentId?: string): Promise<Task[]> {
-        if (!parentId) {
-            return this.tasksRepository.find({});
-        }
-
+    async getTasks(parentId: string): Promise<Task[]> {
         const tasks = await this.tasksRepository.find({ parentId });
         tasks.sort((a, b) => a.index - b.index);
 
@@ -37,5 +33,20 @@ export class TasksService {
 
     async deleteTask(id: string): Promise<Task> {
         return this.tasksRepository.findByIdAndDelete(id);
+    }
+
+    async deleteTasks(parentId: string): Promise<Task[]> {
+        const tasks = await this.tasksRepository.find({ parentId });
+        const deleteQuery = { _id: { $in: tasks.map((task) => task._id) } };
+
+        await this.tasksRepository.deleteMany(deleteQuery);
+        const taskPromises = tasks.map(async (task) => {
+            const subtasks = await this.deleteTasks(task._id);
+            return {
+                ...(task.toObject() as TaskDocument),
+                subtasks: subtasks,
+            };
+        });
+        return Promise.all(taskPromises);
     }
 }
