@@ -10,10 +10,6 @@ export class UpdateProjectDto {
     name?: string;
 
     @IsOptional()
-    @IsString()
-    dragItemId?: string;
-
-    @IsOptional()
     @IsArray()
     searchHistory?: string[];
 }
