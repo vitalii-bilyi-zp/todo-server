@@ -14,6 +14,8 @@ export class TasksService {
         }
 
         const tasks = await this.tasksRepository.find({ parentId });
+        tasks.sort((a, b) => a.index - b.index);
+
         const taskPromises = tasks.map(async (task) => {
             const subtasks = await this.getTasks(task._id);
             return {
