@@ -32,19 +32,42 @@ export class TasksService {
     }
 
     async deleteTask(id: string): Promise<Task> {
-        await this.deleteTasks(id);
+        await this.deleteTasksRecursively(id);
         return this.tasksRepository.findByIdAndDelete(id);
     }
 
-    async deleteTasks(parentId: string): Promise<Task[]> {
+    async deleteTasksRecursively(parentId: string): Promise<Task[]> {
         const tasks = await this.tasksRepository.find({ parentId });
         const deleteQuery = { _id: { $in: tasks.map((task) => task._id) } };
 
         await this.tasksRepository.deleteMany(deleteQuery);
+
         const taskPromises = tasks.map(async (task) => {
-            const subtasks = await this.deleteTasks(task._id);
+            const subtasks = await this.deleteTasksRecursively(task._id);
             return {
                 ...(task.toObject() as TaskDocument),
+                subtasks: subtasks,
+            };
+        });
+        return Promise.all(taskPromises);
+    }
+
+    async saveTasksRecursively(parentId: string, tasks: Task[]): Promise<Task[]> {
+        if (!tasks.length) {
+            return [];
+        }
+
+        const taskPromises = tasks.map(async (task) => {
+            const taskData: CreateTaskDto = {
+                parentId,
+                name: task.name,
+                index: task.index,
+            };
+            const newTask = await this.tasksRepository.save(taskData);
+            const subtasks = await this.saveTasksRecursively(newTask._id, task.subtasks || []);
+
+            return {
+                ...(newTask.toObject() as TaskDocument),
                 subtasks: subtasks,
             };
         });

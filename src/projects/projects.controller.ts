@@ -1,17 +1,30 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, StreamableFile, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    StreamableFile,
+    Res,
+    UseInterceptors,
+    UploadedFile,
+    ParseFilePipe,
+    FileTypeValidator,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response, Express } from 'express';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
-import { Project } from './schemas/project.schema';
-import { TasksService } from './../tasks/tasks.service';
-import { Task } from './../tasks/schemas/task.schema';
+import { Project, ProjectWithTasks } from './schemas/project.schema';
 import { join } from 'path';
 import * as fs from 'fs';
 
 @Controller('projects')
 export class ProjectsController {
-    constructor(private readonly projectsService: ProjectsService, private readonly tasksService: TasksService) {}
+    constructor(private readonly projectsService: ProjectsService) {}
 
     @Post()
     async createProject(@Body() body: CreateProjectDto): Promise<Project> {
@@ -20,7 +33,7 @@ export class ProjectsController {
 
     @Get(':id')
     async getProject(@Param('id') id: string): Promise<Project> {
-        return this.projectsService.getProjectById(id);
+        return this.projectsService.getProjectWithTasks(id);
     }
 
     @Patch(':id')
@@ -31,11 +44,6 @@ export class ProjectsController {
     @Delete(':id')
     async deleteProject(@Param('id') id: string): Promise<Project> {
         return this.projectsService.deleteProject(id);
-    }
-
-    @Get(':id/tasks')
-    async getTasks(@Param('id') id: string): Promise<Task[]> {
-        return this.tasksService.getTasks(id);
     }
 
     @Get(':id/export')
@@ -68,5 +76,20 @@ export class ProjectsController {
         });
 
         return new StreamableFile(fileStream);
+    }
+
+    @Post(':id/import')
+    @UseInterceptors(FileInterceptor('file'))
+    async importProject(
+        @Param('id') id: string,
+        @UploadedFile(
+            new ParseFilePipe({
+                validators: [new FileTypeValidator({ fileType: 'json' })],
+            }),
+        )
+        file: Express.Multer.File,
+    ): Promise<ProjectWithTasks> {
+        const importData: ProjectWithTasks = JSON.parse(file.buffer.toString('utf8'));
+        return this.projectsService.updateProjectWithTasks(id, importData);
     }
 }

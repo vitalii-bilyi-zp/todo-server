@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Project } from './schemas/project.schema';
+import { Project, ProjectWithTasks } from './schemas/project.schema';
 import { ProjectsRepository } from './projects.repository';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -14,20 +14,7 @@ export class ProjectsService {
         return this.projectsRepository.save(projectData);
     }
 
-    async getProjectById(id: string): Promise<Project> {
-        return this.projectsRepository.findById(id);
-    }
-
-    async updateProject(id: string, projectData: UpdateProjectDto): Promise<Project> {
-        return this.projectsRepository.findByIdAndUpdate(id, projectData);
-    }
-
-    async deleteProject(id: string): Promise<Project> {
-        await this.tasksService.deleteTasks(id);
-        return this.projectsRepository.findByIdAndDelete(id);
-    }
-
-    async getProjectWithTasks(id: string): Promise<Project & { tasks: Task[] }> {
+    async getProjectWithTasks(id: string): Promise<ProjectWithTasks> {
         const project = await this.projectsRepository.findById(id);
         const tasks = await this.tasksService.getTasks(project._id);
 
@@ -35,5 +22,28 @@ export class ProjectsService {
             ...(project.toObject() as Project),
             tasks,
         };
+    }
+
+    async updateProject(id: string, projectData: UpdateProjectDto): Promise<Project> {
+        return this.projectsRepository.findByIdAndUpdate(id, projectData);
+    }
+
+    async deleteProject(id: string): Promise<Project> {
+        await this.tasksService.deleteTasksRecursively(id);
+        return this.projectsRepository.findByIdAndDelete(id);
+    }
+
+    async updateProjectWithTasks(id: string, projectData: ProjectWithTasks): Promise<ProjectWithTasks> {
+        const newProject: UpdateProjectDto = {
+            _id: id,
+            name: projectData.name,
+        };
+        await this.projectsRepository.findByIdAndUpdate(id, newProject);
+
+        const newTasks: Task[] = projectData.tasks || [];
+        await this.tasksService.deleteTasksRecursively(id);
+        await this.tasksService.saveTasksRecursively(id, newTasks);
+
+        return this.getProjectWithTasks(id);
     }
 }
