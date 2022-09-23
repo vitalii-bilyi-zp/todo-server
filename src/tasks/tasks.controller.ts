@@ -6,7 +6,7 @@ import { Task } from './schemas/task.schema';
 
 @Controller('tasks')
 export class TasksController {
-    constructor(private tasksService: TasksService) {}
+    constructor(private readonly tasksService: TasksService) {}
 
     @Post()
     async createTask(@Body() body: CreateTaskDto): Promise<Task> {
