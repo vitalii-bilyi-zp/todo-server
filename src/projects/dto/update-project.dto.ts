@@ -8,8 +8,4 @@ export class UpdateProjectDto {
     @IsOptional()
     @IsString()
     name?: string;
-
-    @IsOptional()
-    @IsArray()
-    searchHistory?: string[];
 }

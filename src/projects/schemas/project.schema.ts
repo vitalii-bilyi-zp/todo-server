@@ -7,9 +7,6 @@ export type ProjectDocument = Project & Document;
 export class Project {
     @Prop({ required: true })
     name: string;
-
-    @Prop([String])
-    searchHistory?: string[];
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);
